@@ -2,7 +2,7 @@
  * NC_CreateNotes.js
  *
  * Jason Schleifer / 21 November 2018
- * Latest Revision: 23 November 2018, 10:04 AM
+ * Latest Revision: 1.1 -  23 November 2018, 1:30 PM
  * License: GPL v3
  * 
  * Description:
@@ -19,6 +19,10 @@
  * -------------
  * https://docs.toonboom.com/help/harmony-16/premium/scripting/import-script.html
  * 
+ * 
+ * Updates:
+ * -----
+ * 1.1 - Added visibility node
  * 
  */
 
@@ -68,10 +72,17 @@ function NC_CreateNotes() {
 
     node.linkAttr(vnode, "DRAWING.ELEMENT", elemName);
 
-    // connect it to the comp
+    // HERE
+    // Create a visibility node
+    var vis = node.add(node.root(), (elemName + "_VIS"), "VISIBILITY", xPos, (yPos + NODE_HEIGHT + 5), 0);
+    // Turn off softrender
+    node.setTextAttr(vis, "SOFTRENDER", frame.current(), "N");
+
+    // connect node to vis, and vis to the comp
     var numPorts = node.numberOfInputPorts(compNode);
     var compPort = 0;
-    node.link(vnode, 0, compNode, numPorts, false, true);
+    node.link(vnode, 0, vis, 0, false, true);
+    node.link(vis, 0, compNode, numPorts, false, true);
 
 
     // Now make sure the Note node is selected
