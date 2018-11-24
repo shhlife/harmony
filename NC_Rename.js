@@ -17,7 +17,10 @@
  * -------------
  * https://docs.toonboom.com/help/harmony-16/premium/scripting/import-script.html
  * 
- * 
+ * Acknowledgement:
+ * ----------------
+ * This script wouldn't have been possible without the help from eAthis
+ * https://forums.toonboom.com/harmony/support-and-troubleshooting/how-set-focus-lineedit-qtscript
  */
 
 /**
