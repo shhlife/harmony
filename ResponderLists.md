@@ -7,6 +7,8 @@ For example, if the user has a node selected, they can perform the following act
 Action.perform("OnActionDuplicateElement()");
 ```
 
+[Harmony docs on Action.perform class](https://docs.toonboom.com/help/harmony-16/scripting/script/classAction.html)
+
 What follows is a complete list of what actions are available depending on the appropriate responder.
 
 ___
