@@ -72,7 +72,6 @@ function NC_CreateNotes() {
 
     node.linkAttr(vnode, "DRAWING.ELEMENT", elemName);
 
-    // HERE
     // Create a visibility node
     var vis = node.add(node.root(), (elemName + "_VIS"), "VISIBILITY", xPos, (yPos + NODE_HEIGHT + 5), 0);
     // Turn off softrender
