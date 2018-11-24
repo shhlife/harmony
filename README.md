@@ -1,7 +1,7 @@
 # Harmony
 Scripts that I use daily when working with Toonboom Harmony.
 
-### Prerequisites
+### Compatibility
 
 ```
 ToonBoom Harmony Premium 16
@@ -26,7 +26,14 @@ ToonBoom Harmony Premium 16
 
 ## Installation
 
-For installation, please follow the instructions on Harmony's website:
+Place the scripts in:
+* **Windows:** C:\Users\[username]\AppData\Roaming\Toon Boom Animation\Toon Boom HarmonyPremium\1600-scripts
+* **macOS:** /Users/[username]/Library/Preferences/Toon Boom Animation/Toon Boom HarmonyPremium/1600-scripts
+* **GNU/Linux:** /home/[username]/Toon Boom Animation/Toon Boom HarmonyPremium/1600-scripts
+
+Place any icon files in a folder called **script-icons** within that same directory.
+
+For more detailed instructions, please follow the on Harmony's website:
 https://docs.toonboom.com/help/harmony-16/premium/scripting/import-script.html
 
 
