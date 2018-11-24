@@ -28,3 +28,4 @@ This project is licensed under the GPL V3 License - see the [LICENSE.md](LICENSE
 * [ToonBoom Harmony Learning Portal](https://learn.toonboom.com/)
 * [ToonBoom Harmony Scripting Docs(https://docs.toonboom.com/help/harmony-16/scripting/script/)
 * eAthis - https://forums.toonboom.com/harmony/support-and-troubleshooting/how-set-focus-lineedit-qtscript#new
+* Some icons from http://flaticon.com
