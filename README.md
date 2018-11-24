@@ -11,7 +11,7 @@ ToonBoom Harmony Premium 16
 
 **NC_AlignNodes.js**
 
-> Aligns selected nodes horizontally and vertically in the Node View in Harmony.
+> Aligns selected nodes horizontally or vertically in the Node View in Harmony.
 
 
 **NC_CreateNotes.js**
