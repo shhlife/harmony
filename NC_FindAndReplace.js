@@ -2,7 +2,7 @@
  * NC_Find_And_Replace.js
  *
  * Jason Schleifer / 26 October 2018
- * Latest Revision: 26 October 2018, 10:04 AM
+ * Latest Revision: v2.0 - 25 Nov 2018, 10:04 AM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,14 @@
  * Usage:
  * ------
  * Select a series of nodes you want to replace the text of. Choose the function NC_FindAndReplace.
+ * 
+ * Requirements:
+ * -------------
+ * NC_Utils.js
+ * 
+ * Updates:
+ * --------
+ * v2.0 - added use of NC_Utils.js
  * 
  * Installation:
  * -------------
@@ -23,6 +31,7 @@
  * https://forums.toonboom.com/harmony/support-and-troubleshooting/how-set-focus-lineedit-qtscript
  */
 
+include("NC_Utils.js");
 
 /**
  * 
@@ -30,7 +39,7 @@
  */
 function NC_FindAndReplace() {
 
-    var myUi = createWidget()
+    var myUi = NC_CreateWidget()
     var findLE = new QLineEdit();
     var replaceLE = new QLineEdit();
     var findLELabel = new QLabel();
@@ -79,17 +88,5 @@ function NC_FindAndReplace() {
 
     submit.clicked.connect(myUi, findAndReplace);
     cancel.clicked.connect(myUi, myUi.close);
-
-}
-/**
- * 
- * @return {string} | Widget name
- */
-function createWidget() {
-
-    var own = new QDialog();
-    var gridLayout = new QGridLayout(own);
-    gridLayout.objectName = "gridLayout";
-    return own;
 
 }
