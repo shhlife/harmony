@@ -1,10 +1,14 @@
-
-NC_CenterPivot.js
-buttonlist.xml
+# CF_CopyPastePivots was not created by me - so I'm not including them in the repo.
+# If you want, please download from: http://www.cartoonflow.com/toonboom/scripts/copypastepivots.html
+# 
 CF_CopyPastePivots_1.0.1.js
 CF_CopyPastePivots_1.0.1/CF_CopyPastePivots-Resources/v.1.0.1/CF_CopyPastePivots.ui
 CF_CopyPastePivots_1.0.1/script-icons/CF_CopyPastePivots.png
 CF_CopyPastePivots_1.0.1/script-icons/CF_CopyPastePivts@light.png
+
+# Current WIP - not ready for release
+buttonlist.xml
+NC_CenterPivot.js
 NC_tween.js
 NC_WindowTemplate.js
 scratchpad.js
