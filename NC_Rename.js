@@ -2,7 +2,7 @@
  * NC_Rename.js
  *
  * Jason Schleifer / 26 October 2018
- * Latest Revision: 26 October 2018, 10:04 AM
+ * Latest Revision: v2.0 - 25 November 2018, 10:04 AM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,14 @@
  * Usage:
  * ------
  * Select the node(s) you want to rename. Choose NC_Rename
+ * 
+ * Requirements:
+ * -------------
+ * NC_Utils.js
+ * 
+ * Updates:
+ * --------
+ * v2.0 - added use of NC_Utils.js
  * 
  * Installation:
  * -------------
@@ -23,12 +31,14 @@
  * https://forums.toonboom.com/harmony/support-and-troubleshooting/how-set-focus-lineedit-qtscript
  */
 
+include("NC_Utils.js");
+
 /**
  * 
  * @return {void}
  */
 function NC_Rename() {
-    var myUi = createWidget()
+    var myUi = NC_CreateWidget()
     var replaceLE = new QLineEdit();
     var replaceLELabel = new QLabel();
     replaceLELabel.text = "Replace:";
@@ -76,18 +86,5 @@ function NC_Rename() {
     submit.clicked.connect(myUi, renameAll);
     cancel.clicked.connect(myUi, myUi.close);
 
-
-}
-
-/**
- * 
- * @return {string} | widget name
- */
-function createWidget() {
-
-    var own = new QDialog();
-    var gridLayout = new QGridLayout(own);
-    gridLayout.objectName = "gridLayout";
-    return own;
 
 }
