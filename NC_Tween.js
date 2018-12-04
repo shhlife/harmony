@@ -35,6 +35,7 @@
  * 
  */
 
+var TweenEnv = "NC_TweenPercent";
 
 
 /**
@@ -45,234 +46,216 @@
  * @param  {double} p | percent between
  * @return {double} newValue | the value between start and end based on the percentage
  */
+
+
+
+
+
+// Create something like tween machine.
+
+
 function tween(a, b, p) {
     var newValue = 0.0;
+    a = parseFloat(a);
+    b = parseFloat(b);
+    p = parseFloat(p);
     if (b > a) {
         var dist = b - a;
         var percent = dist * p / 100;
         newValue = (1 * a) + (1 * percent); // this forces javascript to add these as numbers
     } else {
         var dist = a - b;
-        var percent = dist * p / 100;
+        var percent = dist * (100 - p) / 100; // for some reason I need to do 100-p if b < a)
         newValue = (1 * b) + (1 * percent); // this forces javascript to add these as numbers
 
     }
     return (newValue);
 }
 
+function getLinkedCols() {
 
-// Create something like tween machine.
-var mySlider;
-var attrs = ["POSITION.x", "POSITION.y", "POSITION.z", "ROTATION.ANGLEX", "ROTATION.ANGLEY", "ROTATION.ANGLEZ", "SCALE.x", "SCALE.y", "SCALE.z", "SKEW"];
-var nodes = new Array();
+    // get selected nodes
+    var sel = selection.selectedNodes();
 
-include("NC_Utils.js");
+    // create an array for selected nodes
+    var selPegs = new Array(0);
+    var selCols = new Array(0);
 
-function NC_TweenMachine() {
+    // for each selected item
+    for (i = 0; i < sel.length; i++) {
+
+        var n = sel[i];
+
+        // figure out what type it is
+        var type = node.type(n);
+
+        // if it's not a peg, then get the parent node
+        if (type != "PEG") {
+            var parent = node.srcNode(n, 0);
+            n = parent;
+        }
+
+        // add the peg to the selected node
+        if (node.type(n) == "PEG") {
+
+            selPegs.push(n);
+            var attrs = new Array(0);
+
+            // get a list of all attributes on the peg	
+
+            attrs = node.getAttrList(n, frame.current(), "");
 
 
+            // for each attribute, let's see if there are any sub attributes.
+            // then for each attr and sub att, we'll check and see if they're linked to a 
+            // column.  If they are, then we'll store those columns.
+            for (z = 0; z < attrs.length; z++) {
 
-    NC_Log("========================");
-    // Validation
+                // see if there's a linked column
+                var c = node.linkedColumn(n, attrs[z].keyword());
 
-    // Make sure we have at least one layer selected in the timeline.
-    var nLayers = Timeline.numLayerSel;
-    if (nLayers < 1) {
-        MessageBox.information("At least one layer has to be selected in the Timeline!");
-        return;
+                // if there's no display name, I can assume there's no column
+                if (column.getDisplayName(c) != "") {
+                    selCols.push(c);
+                }
+
+                // now do the same for all subAttrs
+                // get a list of all sub attrs for this attr
+                subAttrs = node.getAttrList(n, frame.current(), attrs[z].keyword());
+                for (s = 0; s < subAttrs.length; s++) {
+
+                    sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
+
+                    // see if there's a linked column
+                    var c = node.linkedColumn(n, sa);
+
+                    // if there's no display name, I can assume there's no column.
+                    if (column.getDisplayName(c) != "") {
+
+                        selCols.push(c);
+                    }
+                }
+            }
+        }
     }
-
-    // Get the current frame
-    currentFrame = Timeline.firstFrameSel;
-
-    // get the previous frame
-    Action.perform("onActionGoToPrevKeyFrame()", "timelineView");
-    prevFrame = Timeline.firstFrameSel;
-
-    // go to the current frame
-    frame.setCurrent(currentFrame);
-
-    // get the next frame
-    Action.perform("onActionGoToNextKeyFrame()", "timelineView");
-    nextFrame = Timeline.firstFrameSel;
-
-    // go to the current frame
-    frame.setCurrent(currentFrame);
-
-    NC_Log("Current: " + currentFrame);
-    NC_Log("Prev: " + prevFrame);
-    NC_Log("Next: " + nextFrame);
-
-
-    num = Timeline.numLayerSel;
-    var i;
-    var previousC = "";
-
-    var bezierList = new Array(0);
-    var pathList = new Array(0);
-    var easeList = new Array(0);
-
-
-
-    for (i = 0; i < num; i++) {
-        var c = Timeline.selToColumn(i);
-        var n = Timeline.selToNode(i);
-
-        // if the column is the same as the last one, skip this step
-        if (c == previousC)
-            continue;
-
-        if (column.type(c) == "BEZIER") {
-            bezierList.push(c);
-        }
-        if (column.type(c) == "3DPATH") {
-            pathList.push(c);
-        }
-        if (column.type(c) == "QUATERNIONPATH") {
-            pathList.push(c);
-        }
-        if (column.type(c) == "EASE") {
-            easeList.push(c);
-        }
-        previousC = c;
-    }
-    if (bezierList.length == 0 && pathList.length == 0 && easeList.length == 0) {
-        MessageBox.information("The selected layers contain no functions!");
-        return;
-    }
-
-    return bezierList;
+    return selCols;
 
 }
 
-function NC_SetHalf() {
-    p = 50;
-    nodes = NC_TweenMachine();
+function NC_SetTween(p) {
+
+    MessageLog.trace("Set percentage: " + p);
+    var selCols = new Array(0);
+    selCols = getLinkedCols();
+
+    var columnInfo = new Array(0);
+
+    var curFrame = frame.current();
+
     scene.beginUndoRedoAccum("NC_Tween");
 
-    if (nodes.length > 0) {
+    for (i = 0; i < selCols.length; i++) {
+        c = selCols[i];
+        var numKeys = func.numberOfPoints(c);
 
-        for (i = 0; i < nodes.length; i++) {
-            c = nodes[i];
-            // get the value
-            var v = column.getEntry(c, 1, frame.current());
-            var pv = column.getEntry(c, 1, prevFrame);
-            var nv = column.getEntry(c, 1, nextFrame);
+        // now we want to find the previous and next frames for each column
+        prevFrame = curFrame;
+        nextFrame = curFrame;
+        prevIndex = 0;
+        nextIndex = 0;
+        foundNext = 0;
+        for (x = 0; x < numKeys; x++) {
+            frame = func.pointX(c, x);
+            if (foundNext == 0) {
+                if (frame < curFrame) {
+                    prevFrame = frame;
+                    prevIndex = x;
+                }
+                if (frame > curFrame) {
+                    nextFrame = frame;
+                    nextIndex = x;
+                    foundNext = 1;
 
-            if (pv != nv) {
-                var tv = tween(pv, nv, p);
-                column.setKeyFrame(c, currentFrame);
-                func.setBezierPoint(c, currentFrame, tv, func.pointHandleLeftX(c, 0), func.pointHandleLeftY(c, 0), func.pointHandleRightX(c, 0), func.pointHandleRightY(c, 0), true, "CORNER");
+                }
             }
-
         }
 
+        currentValue = column.getEntry(c, 1, curFrame);
+        prevValue = column.getEntry(c, 1, prevFrame);
+        nextValue = column.getEntry(c, 1, nextFrame);
+
+        // now get the function info so we know what type of curve to create
+        pointHandleLeftX = func.pointHandleRightX(c, prevIndex);
+        pointHandleLeftY = func.pointHandleRightY(c, prevIndex);
+        pointHandleRightX = func.pointHandleLeftX(c, nextIndex);
+        pointHandleRightY = func.pointHandleLeftY(c, nextIndex);
+        constSeg = func.pointConstSeg(c, prevIndex);
+        continuity = func.pointContinuity(c, prevIndex);
+
+        columnInfo[i] = {
+            col: c,
+            colName: column.getDisplayName(c),
+            val: currentValue,
+            prevValue: prevValue,
+            prevIndex: prevIndex,
+            nextValue: nextValue,
+            prevFrame: prevFrame,
+            nextFrame: nextFrame,
+            nextIndex: nextIndex,
+            pointHandleLeftX: pointHandleLeftX,
+            pointHandleLeftY: pointHandleLeftY,
+            pointHandleRightX: pointHandleRightX,
+            pointHandleRightY: pointHandleRightY,
+            constSeg: constSeg,
+            continuity: continuity
+        };
+
+    }
+
+    for (i = 0; i < columnInfo.length; i++) {
+        c = columnInfo[i];
+        if (c.prevValue != c.nextValue) {
+            nv = tween(c.prevValue, c.nextValue, p);
+
+            // try setting the key
+            column.clearKeyFrame(c.col, curFrame);
+            result = column.setKeyFrame(c.col, curFrame);
+            func.setBezierPoint(c.col, curFrame, nv, c.pointHandleLeftX, c.pointHandleLeftY, c.pointHandleRightX, c.pointHandleRightY, c.constSeg, c.continuity);
+
+            MessageLog.trace(c.colName + ": " + c.prevFrame + ":" + c.prevValue + "  " + c.nextFrame + ":" + c.nextValue + " --- NEW: " + nv);
+        }
     }
     scene.endUndoRedoAccum();
-
 }
 
-function NC_SetNinety() {
-    p = 10;
-    nodes = NC_TweenMachine();
-    scene.beginUndoRedoAccum("NC_Tween");
-
-    if (nodes.length > 0) {
-
-        for (i = 0; i < nodes.length; i++) {
-            c = nodes[i];
-            // get the value
-            var v = column.getEntry(c, 1, frame.current());
-            var pv = column.getEntry(c, 1, prevFrame);
-            var nv = column.getEntry(c, 1, nextFrame);
-
-            if (pv != nv) {
-                var tv = tween(pv, nv, p);
-                column.setKeyFrame(c, currentFrame);
-                func.setBezierPoint(c, currentFrame, tv, func.pointHandleLeftX(c, 0), func.pointHandleLeftY(c, 0), func.pointHandleRightX(c, 0), func.pointHandleRightY(c, 0), true, "CORNER");
-            }
-
-        }
-
-    }
-    scene.endUndoRedoAccum();
-
+function NC_TweenFifty() {
+    // Reset the tweening to halfway
+    p = preferences.setDouble(TweenEnv, 50);
+    NC_SetTween(p);
 }
 
-function NC_SetTen() {
-    p = 90;
-    nodes = NC_TweenMachine();
-    scene.beginUndoRedoAccum("NC_Tween");
+function NC_TweenMore() {
+    // Reset the tweening to halfway
+    p = preferences.getDouble(TweenEnv, 50);
 
-    if (nodes.length > 0) {
+    // now find halfway between current and 100
+    var np = Math.round(tween(p, 100, 50));
+    MessageLog.trace("Current: " + p + "   New: " + np);
 
-        for (i = 0; i < nodes.length; i++) {
-            c = nodes[i];
-            // get the value
-            var v = column.getEntry(c, 1, frame.current());
-            var pv = column.getEntry(c, 1, prevFrame);
-            var nv = column.getEntry(c, 1, nextFrame);
+    preferences.setDouble(TweenEnv, np);
 
-            if (pv != nv) {
-                var tv = tween(pv, nv, p);
-                column.setKeyFrame(c, currentFrame);
-                func.setBezierPoint(c, currentFrame, tv, func.pointHandleLeftX(c, 0), func.pointHandleLeftY(c, 0), func.pointHandleRightX(c, 0), func.pointHandleRightY(c, 0), true, "CORNER");
-            }
-
-        }
-
-    }
-    scene.endUndoRedoAccum();
-
+    NC_SetTween(np);
 }
 
-function Private_ProcessBezier(b, currentFrame, percent) {
-    // I need to figure out what frames the keys are in the column.
+function NC_TweenLess() {
+    // Reset the tweening to halfway
+    p = preferences.getDouble(TweenEnv, 50);
 
-    // first go to the next keyframe
-    Action.perform("onActionGoToNextKeyFrame()", "timelineView");
-    nextFrame = Timeline.firstFrameSel;
+    // now find halfway between current and 0
+    var np = Math.round(tween(p, 0, 50));
+    MessageLog.trace("Current: " + p + "   New: " + np);
 
-    // Go back to the frame we had
+    preferences.setDouble(TweenEnv, np);
 
-    // Now go to the previous keyframe
-    Action.perform("onActionGoToPrevKeyFrame()", "timelineView");
-    prevFrame = Timeline.firstFrameSel;
-
-    var values = new Array(0);
-    var v = column.getEntry(b, 1, f);
-
-}
-
-function printVal() {
-    //This prints a continuous stream of updating values, as they are changed
-
-    // Get the selected nodes
-    // get the number of items selected
-    var n = selection.numberOfNodesSelected();
-    var percent = mySlider.value;
-    //for (i = 0; i < bezierList.length; ++i) {
-    //    Private_ProcessBezier(bezierList[i], currentFrame, percent);
-    //}
-    if (nodes.length > 0) {
-
-        var percent = mySlider.value;
-        for (i = 0; i < nodes.length; i++) {
-            var newValue = tween(nodes[i].prev, nodes[i].next, percent);
-            NC_Log("Name: " + nodes[i].name + ", Attr: " + nodes[i].attr + ", Current: " + nodes[i].current + ", New: " + newValue + ", Prev: " + nodes[i].prev + ", Next: " + nodes[i].next)
-                //node.setTextAttr(nodes[i].theNode, nodes[i].attr, currentFrame, newValue);
-                //Action.perform("onActionInsertKeyframe()");
-                // function.setBezierPoint(nodes[i].name, currentFrame)
-        }
-
-        // check and see if there are any keys before or after the current frame for the selected node.
-        /* var start = 15;
-         var end = 200;
-         var percent = mySlider.value;
-         var value = tween(start, end, percent);
-         MessageLog.trace(currentFrame + ": " + value);
-         */
-
-    }
-
+    NC_SetTween(np);
 }
