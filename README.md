@@ -25,10 +25,6 @@ ToonBoom Harmony Premium 16
 
 **NC_TweenUI.js**
 > Creates a Simple UI for blending between two keyframes. Great when in stop motion mode!
-> *Requires: NC_TweenUI.ui*
-
-**NC_TweenUI.ui**
-> XML for the UI for NC_TweenUI.js
 
 ## Installation
 
