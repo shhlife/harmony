@@ -9,6 +9,14 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
+      <widget class="QPushButton" name="AnticButton">
+       <property name="text">
+        <string>Antic</string>
+       </property>
+      </widget>
+     </item>
+    <item>
+
       <widget class="QPushButton" name="FavorAButton">
        <property name="text">
         <string>Favor Prev Pose</string>
@@ -29,7 +37,13 @@
        </property>
       </widget>
      </item>
-    
+    <item>
+      <widget class="QPushButton" name="OvershootButton">
+       <property name="text">
+        <string>Overshoot</string>
+       </property>
+      </widget>
+     </item>
      
     </layout>
    </item>

@@ -262,6 +262,7 @@ function NC_Tween() {
                     p = 50;
                 }
 
+
                 // get the next value that we tween to
                 nv = this.tween(c.prevValue, c.nextValue, p);
 
@@ -275,7 +276,9 @@ function NC_Tween() {
         }
         scene.endUndoRedoAccum();
     }
-
+    this.antic = function() {
+        this.NC_SetTween(-15);
+    }
     this.tweenPrevious = function() {
         this.NC_SetTween(25);
     }
@@ -285,19 +288,56 @@ function NC_Tween() {
     this.tweenNext = function() {
         this.NC_SetTween(75);
     }
+    this.overshoot = function() {
+        this.NC_SetTween(115);
+    }
 
 
-    // Load the ui file (created in Qt designer)
-    localPath = specialFolders.userScripts;
-    localPath += "/NC_TweenUI.ui";
-    this.ui = UiLoader.load(localPath);
+    // UI
+    // =========================================
+
+    this.createWidget = function() {
+        var own = new QDialog();
+        var gridLayout = new QGridLayout(own);
+        gridLayout.objectName = "gridLayout";
+        return own;
+    }
+
+
+    // build the widget
+    var myUi = this.createWidget();
+
+    var AnticButton = new QPushButton();
+    AnticButton.text = "Antic";
+
+    var FavorAButton = new QPushButton();
+    FavorAButton.text = "Favor Prev Frame";
+
+    var MidButton = new QPushButton();
+    MidButton.text = "Halfway";
+
+    var FavorBButton = new QPushButton();
+    FavorBButton.text = "Favor Next Frame";
+
+    var OvershootButton = new QPushButton();
+    OvershootButton.text = "Overshoot";
+
+    // Layout
+    myUi.gridLayout.addWidget(AnticButton, 0, 0);
+    myUi.gridLayout.addWidget(FavorAButton, 0, 1);
+    myUi.gridLayout.addWidget(MidButton, 0, 2);
+    myUi.gridLayout.addWidget(FavorBButton, 0, 3);
+    myUi.gridLayout.addWidget(OvershootButton, 0, 4);
+
 
     // Show the dialog in non-modal fashion.
-    ui.show();
+    myUi.show();
 
     // Connect the buttons
-    ui.FavorAButton.clicked.connect(this, this.tweenPrevious);
-    ui.MidButton.clicked.connect(this, this.tweenMid);
-    ui.FavorBButton.clicked.connect(this, this.tweenNext);
+    AnticButton.clicked.connect(this, this.antic);
+    FavorAButton.clicked.connect(this, this.tweenPrevious);
+    MidButton.clicked.connect(this, this.tweenMid);
+    FavorBButton.clicked.connect(this, this.tweenNext);
+    OvershootButton.clicked.connect(this, this.overshoot);
 
 }
