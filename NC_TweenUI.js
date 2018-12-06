@@ -2,7 +2,7 @@
  * NC_Tween.js
  *
  * Jason Schleifer / 25 November 2018
- * Latest Revision: 25 November 2018, 10:04 AM
+ * Latest Revision: 6 December 2018, 8:16 AM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,10 @@
  * 
  * Version:
  * --------
+ * 
+ * 0.3 -    Added Antic and Overshoot - first pass to see how those work.
+ *          Moved all UI into the main js file, no need for NC_TweenUI.ui anymore.
+ * 
  * 0.2 -    UI works for making it < Favor Previous |  Halfway  |  Favor Next >
  * 
  * 0.1 -    Very much still in progress. Currently it will allow you to blend 10, 50, or 90% between
