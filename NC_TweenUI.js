@@ -13,6 +13,8 @@
  * Version:
  * --------
  * 
+ * 0.5 -    Updated the window to stay on top when working with it.
+ * 
  * 0.4 -    Fixed bug when using more than one peg/drawing at a time.
  * 
  * 0.3 -    Added Antic and Overshoot - first pass to see how those work.
@@ -339,7 +341,10 @@ function NC_Tween() {
 
 
     // Show the dialog in non-modal fashion.
+    myUi.setWindowFlags(Qt.WindowStaysOnTopHint);
+
     myUi.show();
+    //myUi.isModal = true;
 
     // Connect the buttons
     AnticButton.clicked.connect(this, this.antic);
