@@ -2,7 +2,7 @@
  * NC_Tween.js
  *
  * Jason Schleifer / 25 November 2018
- * Latest Revision: 6 December 2018, 8:16 AM
+ * Latest Revision: 6 December 2018, 1:30 PM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,8 @@
  * 
  * Version:
  * --------
+ * 
+ * 0.4 -    Fixed bug when using more than one peg/drawing at a time.
  * 
  * 0.3 -    Added Antic and Overshoot - first pass to see how those work.
  *          Moved all UI into the main js file, no need for NC_TweenUI.ui anymore.
@@ -251,31 +253,34 @@ function NC_Tween() {
         for (i = 0; i < columnInfo.length; i++) {
             c = columnInfo[i];
 
+            var np = p; // use np so we don't overwrite p
+
             // only continue if the previous value and the next value aren't the same. Otherwise we're wasting time!
             if (c.prevValue != c.nextValue) {
                 // if we're favoring the next key..
-                if (p == 75) {
+                if (np == 75) {
                     columnInfo[i].prevValue = columnInfo[i].val;
                     // now set p to 50 so we'll be between the current value and the next
-                    p = 50;
+                    np = 50;
                 }
                 // if we're favoring the previous key
-                if (p == 25) {
+                if (np == 25) {
                     columnInfo[i].nextValue = columnInfo[i].val;
                     // now set p to 50
-                    p = 50;
+                    np = 50;
                 }
 
 
                 // get the next value that we tween to
-                nv = this.tween(c.prevValue, c.nextValue, p);
+                var nv = this.tween(columnInfo[i].prevValue, columnInfo[i].nextValue, np);
 
                 // Create a key
                 result = column.setKeyFrame(c.col, curFrame);
-
                 // Now adjust the key based on the previous key's settings.
                 func.setBezierPoint(c.col, curFrame, nv, c.pointHandleLeftX, c.pointHandleLeftY, c.pointHandleRightX, c.pointHandleRightY, c.constSeg, c.continuity);
 
+            } else {
+                // skipping
             }
         }
         scene.endUndoRedoAccum();
@@ -295,7 +300,6 @@ function NC_Tween() {
     this.overshoot = function() {
         this.NC_SetTween(115);
     }
-
 
     // UI
     // =========================================
