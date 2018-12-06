@@ -262,6 +262,7 @@ function NC_Tween() {
                     p = 50;
                 }
 
+
                 // get the next value that we tween to
                 nv = this.tween(c.prevValue, c.nextValue, p);
 
@@ -275,7 +276,9 @@ function NC_Tween() {
         }
         scene.endUndoRedoAccum();
     }
-
+    this.antic = function() {
+        this.NC_SetTween(-15);
+    }
     this.tweenPrevious = function() {
         this.NC_SetTween(25);
     }
@@ -284,6 +287,9 @@ function NC_Tween() {
     }
     this.tweenNext = function() {
         this.NC_SetTween(75);
+    }
+    this.overshoot = function() {
+        this.NC_SetTween(115);
     }
 
 
@@ -296,8 +302,10 @@ function NC_Tween() {
     ui.show();
 
     // Connect the buttons
+    ui.AnticButton.clicked.connect(this, this.antic);
     ui.FavorAButton.clicked.connect(this, this.tweenPrevious);
     ui.MidButton.clicked.connect(this, this.tweenMid);
     ui.FavorBButton.clicked.connect(this, this.tweenNext);
+    ui.OvershootButton.clicked.connect(this, this.overshoot);
 
 }
