@@ -165,14 +165,14 @@ function NC_SetTween(p) {
         nextIndex = 0;
         foundNext = 0;
         for (x = 0; x < numKeys; x++) {
-            frame = func.pointX(c, x);
+            framePoint = func.pointX(c, x);
             if (foundNext == 0) {
-                if (frame < curFrame) {
-                    prevFrame = frame;
+                if (framePoint < curFrame) {
+                    prevFrame = framePoint;
                     prevIndex = x;
                 }
-                if (frame > curFrame) {
-                    nextFrame = frame;
+                if (framePoint > curFrame) {
+                    nextFrame = framePoint;
                     nextIndex = x;
                     foundNext = 1;
 
@@ -180,10 +180,11 @@ function NC_SetTween(p) {
             }
         }
 
-        currentValue = column.getEntry(c, 1, curFrame);
-        prevValue = column.getEntry(c, 1, prevFrame);
-        nextValue = column.getEntry(c, 1, nextFrame);
+        var currentValue = column.getEntry(c, 1, curFrame);
+        var prevValue = column.getEntry(c, 1, prevFrame);
+        var nextValue = column.getEntry(c, 1, nextFrame);
 
+        // test to see if just choosing more or less than 75 works
         // now get the function info so we know what type of curve to create
         pointHandleLeftX = func.pointHandleRightX(c, prevIndex);
         pointHandleLeftY = func.pointHandleRightY(c, prevIndex);
@@ -210,11 +211,31 @@ function NC_SetTween(p) {
             continuity: continuity
         };
 
+
+
+        //MessageLog.trace("Current: " + columnInfo[i].colName + ": " + columnInfo[i].val + "    Prev:" + columnInfo[i].prevValue);
     }
 
     for (i = 0; i < columnInfo.length; i++) {
         c = columnInfo[i];
         if (c.prevValue != c.nextValue) {
+            if (p == 75) {
+                MessageLog.trace("Setting " + columnInfo[i].colName + " prevValue: " + columnInfo[i].val);
+                // we're saying do "more" or "less".. so let's set the prevValue to currentValue
+                columnInfo[i].prevValue = columnInfo[i].val;
+
+                // now set p to 50
+                p = 50;
+            }
+            if (p == 25) {
+                MessageLog.trace("Setting " + columnInfo[i].colName + " prevValue: " + columnInfo[i].val);
+                // we're saying do "more" or "less".. so let's set the prevValue to currentValue
+                columnInfo[i].nextValue = columnInfo[i].val;
+
+                // now set p to 50
+                p = 50;
+            }
+            MessageLog.trace(c.colName + ": " + c.prevValue + " " + c.nextValue + "     percent:" + p);
             nv = tween(c.prevValue, c.nextValue, p);
 
             // try setting the key
@@ -225,6 +246,7 @@ function NC_SetTween(p) {
             MessageLog.trace(c.colName + ": " + c.prevFrame + ":" + c.prevValue + "  " + c.nextFrame + ":" + c.nextValue + " --- NEW: " + nv);
         }
     }
+    MessageLog.trace("----");
     scene.endUndoRedoAccum();
 }
 
@@ -240,6 +262,7 @@ function NC_TweenMore() {
 
     // now find halfway between current and 100
     var np = Math.round(tween(p, 100, 50));
+    np = 75;
     MessageLog.trace("Current: " + p + "   New: " + np);
 
     preferences.setDouble(TweenEnv, np);
@@ -253,6 +276,7 @@ function NC_TweenLess() {
 
     // now find halfway between current and 0
     var np = Math.round(tween(p, 0, 50));
+    np = 25;
     MessageLog.trace("Current: " + p + "   New: " + np);
 
     preferences.setDouble(TweenEnv, np);

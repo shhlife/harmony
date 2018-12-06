@@ -7,26 +7,19 @@
  * 
  * Description:
  * -----------
- * Create a simple UI to make it easy to blend the currently selected peg(s) between the previous and next key frame by a certain percentage.
+ * Create a simple UI to make it easy to blend the currently selected peg(s) between the previous and next key frame 
  * 
- * Ex:
- *  uparm-P_Rot-x is a value of -15 at frame 1, and 30 at frame 15.
- *  the user is at frame 7, and wants Rot-x to be 5% of the difference between the two (basically a big ease out).
- *  They click the 5% button, and a key is generated at at the current frame with Rot-x set to :
- *         abs((ValueA - ValueB) * Percent) + ValueA
- *         abs((-15 - 30) * .05) + -15
- *         abs((-45)) * .05) + -15
- *         abs(-2.25) + -15
- *         -12.75
  * 
  * Version:
  * --------
+ * 0.2 -    UI works for making it < Favor Previous |  Halfway  |  Favor Next >
+ * 
  * 0.1 -    Very much still in progress. Currently it will allow you to blend 10, 50, or 90% between
  *          two keys.
  * 
  * Usage:
  * ------
- * DON'T USE YET - STILL IN PROGRESS
+ * NC_TweenUI
  * 
  * Installation:
  * -------------
@@ -35,22 +28,27 @@
  * 
  */
 
-var TweenEnv = "NC_TweenPercent";
+//var TweenEnv = "NC_TweenPercent";
 
 
 /**
- * tween
+ * NC_Tween ()
  * 
- * @param  {double} a | start value
- * @param  {double} b | end value
- * @param  {double} p | percent between
- * @return {double} newValue | the value between start and end based on the percentage
+ * @return {void}
  */
-
-
 function NC_Tween() {
 
+
+    /**
+     * function tween  
+     *       
+     * @param  {float} a | Start value
+     * @param  {float} b | End Value
+     * @param  {float} p | Percentage between (in integer - eg: 25, 50, 100)
+     * @return  {float} newValue | The resulting value between start and end
+     */
     this.tween = function(a, b, p) {
+
         var newValue = 0.0;
         a = parseFloat(a);
         b = parseFloat(b);
@@ -65,20 +63,33 @@ function NC_Tween() {
             newValue = (1 * b) + (1 * percent); // this forces javascript to add these as numbers
 
         }
-        return (newValue);
+        return newValue;
     }
 
+
+    /**
+     * function getLinkedCols
+     * 
+     * Returns the linked columns from the selected pegs or drawings.
+     * 
+     * @return {array} selCols | Selected columns.
+     */
+
     this.getLinkedCols = function() {
+
         // get selected nodes
         var sel = selection.selectedNodes();
 
-        // create an array for selected nodes
-        var selPegs = new Array(0);
+        // get the current frame. This is needed in order to pull the existing columsn
+        var curFrame = frame.current();
+
+        // create an array for selected columns
         var selCols = new Array(0);
 
         // for each selected item
         for (i = 0; i < sel.length; i++) {
 
+            // get a handy variable for the selected item
             var n = sel[i];
 
             // figure out what type it is
@@ -93,14 +104,11 @@ function NC_Tween() {
             // add the peg to the selected node
             if (node.type(n) == "PEG") {
 
-                selPegs.push(n);
+                // get an array for attributes
                 var attrs = new Array(0);
 
                 // get a list of all attributes on the peg	
-
-                attrs = node.getAttrList(n, frame.current(), "");
-
-                MessageLog.trace("here");
+                attrs = node.getAttrList(n, curFrame, "");
 
                 // for each attribute, let's see if there are any sub attributes.
                 // then for each attr and sub att, we'll check and see if they're linked to a 
@@ -117,7 +125,7 @@ function NC_Tween() {
 
                     // now do the same for all subAttrs
                     // get a list of all sub attrs for this attr
-                    subAttrs = node.getAttrList(n, frame.current(), attrs[z].keyword());
+                    subAttrs = node.getAttrList(n, curFrame, attrs[z].keyword());
                     for (s = 0; s < subAttrs.length; s++) {
 
                         sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
@@ -135,24 +143,43 @@ function NC_Tween() {
             }
         }
 
+        // now we have all the selected columns
         return selCols;
 
     }
 
+    this.getAllKeyInfo = function() {
 
+        }
+        /**
+         * function NC_SetTween
+         * 
+         * Figures out how to tween for the selected columns based on the percentage given.
+         * At the moment, we're using:
+         *    25: Tween to the previous keyframe's value
+         *    50: Tween halfway
+         *    75: Tween to the next keyframe's value
+         * 
+         * @param  {any} p | percentage to tween
+         * @return {void}
+         */
     this.NC_SetTween = function(p) {
 
-        MessageLog.trace("Set percentage: " + p);
+        // get the selected columns
         var selCols = new Array(0);
-
         selCols = this.getLinkedCols();
 
+        // create an array to store the column info
         var columnInfo = new Array(0);
 
+        // get the current frame
         var curFrame = frame.current();
 
+        // for each column, go and get info on previous, current and next keys.
         for (i = 0; i < selCols.length; i++) {
             c = selCols[i];
+
+            // how many keys exist in the column?
             var numKeys = func.numberOfPoints(c);
 
             // now we want to find the previous and next frames for each column
@@ -160,16 +187,18 @@ function NC_Tween() {
             nextFrame = curFrame;
             prevIndex = 0;
             nextIndex = 0;
-            foundNext = 0;
+            foundNext = 0; // checking to see if we found the next key
+
+            // for each key - iterate through until we have the previous and next frames
             for (x = 0; x < numKeys; x++) {
-                frame = func.pointX(c, x);
+                framePoint = func.pointX(c, x);
                 if (foundNext == 0) {
-                    if (frame < curFrame) {
-                        prevFrame = frame;
+                    if (framePoint < curFrame) {
+                        prevFrame = framePoint;
                         prevIndex = x;
                     }
-                    if (frame > curFrame) {
-                        nextFrame = frame;
+                    if (framePoint > curFrame) {
+                        nextFrame = framePoint;
                         nextIndex = x;
                         foundNext = 1;
 
@@ -177,6 +206,7 @@ function NC_Tween() {
                 }
             }
 
+            // get the current, previus and next values
             currentValue = column.getEntry(c, 1, curFrame);
             prevValue = column.getEntry(c, 1, prevFrame);
             nextValue = column.getEntry(c, 1, nextFrame);
@@ -189,6 +219,7 @@ function NC_Tween() {
             constSeg = func.pointConstSeg(c, prevIndex);
             continuity = func.pointContinuity(c, prevIndex);
 
+            // slurp all this stuff into an array
             columnInfo[i] = {
                 col: c,
                 colName: column.getDisplayName(c),
@@ -208,49 +239,53 @@ function NC_Tween() {
             };
 
         }
+
+
+        // Now the magic happens! Start the tweening!
         scene.beginUndoRedoAccum("NC_Tween");
 
         for (i = 0; i < columnInfo.length; i++) {
             c = columnInfo[i];
+
+            // only continue if the previous value and the next value aren't the same. Otherwise we're wasting time!
             if (c.prevValue != c.nextValue) {
+                // if we're favoring the next key..
+                if (p == 75) {
+                    columnInfo[i].prevValue = columnInfo[i].val;
+                    // now set p to 50 so we'll be between the current value and the next
+                    p = 50;
+                }
+                // if we're favoring the previous key
+                if (p == 25) {
+                    columnInfo[i].nextValue = columnInfo[i].val;
+                    // now set p to 50
+                    p = 50;
+                }
+
+                // get the next value that we tween to
                 nv = this.tween(c.prevValue, c.nextValue, p);
 
-                // try setting the key
-                column.clearKeyFrame(c.col, curFrame);
+                // Create a key
                 result = column.setKeyFrame(c.col, curFrame);
+
+                // Now adjust the key based on the previous key's settings.
                 func.setBezierPoint(c.col, curFrame, nv, c.pointHandleLeftX, c.pointHandleLeftY, c.pointHandleRightX, c.pointHandleRightY, c.constSeg, c.continuity);
 
-                MessageLog.trace(c.colName + ": " + c.prevFrame + ":" + c.prevValue + "  " + c.nextFrame + ":" + c.nextValue + " --- NEW: " + nv);
             }
         }
         scene.endUndoRedoAccum();
     }
 
     this.tweenPrevious = function() {
-
-        MessageLog.trace("Favor Previous!");
-        // Reset the tweening to halfway
-        p = preferences.getDouble(TweenEnv, 50);
-
-        // now find halfway between current and 0
-        var np = Math.round(this.tween(p, 0, 50));
-        MessageLog.trace("Current: " + p + "   New: " + np);
-
-        preferences.setDouble(TweenEnv, np);
-
-        this.NC_SetTween(np);
+        this.NC_SetTween(25);
     }
     this.tweenMid = function() {
-        MessageLog.trace("Mid Point");
-        p = preferences.setDouble(TweenEnv, 50);
         this.NC_SetTween(50);
     }
     this.tweenNext = function() {
-        MessageLog.trace("Favor Next");
+        this.NC_SetTween(75);
     }
 
-
-    var TweenEnv = "NC_TweenPercent";
 
     // Load the ui file (created in Qt designer)
     localPath = specialFolders.userScripts;

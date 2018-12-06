@@ -11,11 +11,11 @@ function ButtonUI() {
     this.PrintFrame = function() {
         scene.beginUndoRedoAccum("PrintFrame");
 
-        frame = frame.current();
-        MessageLog.trace("Current Frame: " + frame);
+        var myFrame = frame.current();
+        MessageLog.trace("Current Frame: " + myFrame);
         scene.endUndoRedoAccum();
 
-        return (frame);
+        return myFrame;
 
     }
 
