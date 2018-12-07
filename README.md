@@ -25,10 +25,6 @@ ToonBoom Harmony Premium 16
 
 **NC_TweenUI.js**
 > Creates a Simple UI for blending between two keyframes. Great when in stop motion mode!
-> Requires: NC_TweenUI.ui
-
-**NC_TweenUI.ui**
-> XML for the UI for NC_TweenUI.js
 
 ## Installation
 
@@ -58,6 +54,8 @@ This project is licensed under the GPL V3 License - see the [LICENSE.md](LICENSE
 * [Nimble Collective Community](https://community.nimblecollective.com)
 * [ToonBoom Harmony Learning Portal](https://learn.toonboom.com/)
 * [ToonBoom Harmony Scripting Docs](https://docs.toonboom.com/help/harmony-16/scripting/script/)
+* https://docs.toonboom.com/help/harmony-14/scripting/script/annotated.html
+* https://docs.toonboom.com/help/harmony-14/scripting/scriptmodule/annotated.html
 * eAthis - https://forums.toonboom.com/harmony/support-and-troubleshooting/how-set-focus-lineedit-qtscript#new
 * Stylus Rumble - https://www.youtube.com/channel/UCP7U2uqSXXcDCkMdqXsq_jQ
 * Some icons from http://flaticon.com

@@ -2,7 +2,7 @@
  * NC_Tween.js
  *
  * Jason Schleifer / 25 November 2018
- * Latest Revision: 25 November 2018, 10:04 AM
+ * Latest Revision: 6 December 2018, 1:30 PM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,14 @@
  * 
  * Version:
  * --------
+ * 
+ * 0.5 -    Updated the window to stay on top when working with it.
+ * 
+ * 0.4 -    Fixed bug when using more than one peg/drawing at a time.
+ * 
+ * 0.3 -    Added Antic and Overshoot - first pass to see how those work.
+ *          Moved all UI into the main js file, no need for NC_TweenUI.ui anymore.
+ * 
  * 0.2 -    UI works for making it < Favor Previous |  Halfway  |  Favor Next >
  * 
  * 0.1 -    Very much still in progress. Currently it will allow you to blend 10, 50, or 90% between
@@ -247,35 +255,41 @@ function NC_Tween() {
         for (i = 0; i < columnInfo.length; i++) {
             c = columnInfo[i];
 
+            var np = p; // use np so we don't overwrite p
+
             // only continue if the previous value and the next value aren't the same. Otherwise we're wasting time!
             if (c.prevValue != c.nextValue) {
                 // if we're favoring the next key..
-                if (p == 75) {
+                if (np == 75) {
                     columnInfo[i].prevValue = columnInfo[i].val;
                     // now set p to 50 so we'll be between the current value and the next
-                    p = 50;
+                    np = 50;
                 }
                 // if we're favoring the previous key
-                if (p == 25) {
+                if (np == 25) {
                     columnInfo[i].nextValue = columnInfo[i].val;
                     // now set p to 50
-                    p = 50;
+                    np = 50;
                 }
 
+
                 // get the next value that we tween to
-                nv = this.tween(c.prevValue, c.nextValue, p);
+                var nv = this.tween(columnInfo[i].prevValue, columnInfo[i].nextValue, np);
 
                 // Create a key
                 result = column.setKeyFrame(c.col, curFrame);
-
                 // Now adjust the key based on the previous key's settings.
                 func.setBezierPoint(c.col, curFrame, nv, c.pointHandleLeftX, c.pointHandleLeftY, c.pointHandleRightX, c.pointHandleRightY, c.constSeg, c.continuity);
 
+            } else {
+                // skipping
             }
         }
         scene.endUndoRedoAccum();
     }
-
+    this.antic = function() {
+        this.NC_SetTween(-15);
+    }
     this.tweenPrevious = function() {
         this.NC_SetTween(25);
     }
@@ -285,19 +299,58 @@ function NC_Tween() {
     this.tweenNext = function() {
         this.NC_SetTween(75);
     }
+    this.overshoot = function() {
+        this.NC_SetTween(115);
+    }
+
+    // UI
+    // =========================================
+
+    this.createWidget = function() {
+        var own = new QDialog();
+        var gridLayout = new QGridLayout(own);
+        gridLayout.objectName = "gridLayout";
+        return own;
+    }
 
 
-    // Load the ui file (created in Qt designer)
-    localPath = specialFolders.userScripts;
-    localPath += "/NC_TweenUI.ui";
-    this.ui = UiLoader.load(localPath);
+    // build the widget
+    var myUi = this.createWidget();
+
+    var AnticButton = new QPushButton();
+    AnticButton.text = "Antic";
+
+    var FavorAButton = new QPushButton();
+    FavorAButton.text = "Favor Prev Frame";
+
+    var MidButton = new QPushButton();
+    MidButton.text = "Halfway";
+
+    var FavorBButton = new QPushButton();
+    FavorBButton.text = "Favor Next Frame";
+
+    var OvershootButton = new QPushButton();
+    OvershootButton.text = "Overshoot";
+
+    // Layout
+    myUi.gridLayout.addWidget(AnticButton, 0, 0);
+    myUi.gridLayout.addWidget(FavorAButton, 0, 1);
+    myUi.gridLayout.addWidget(MidButton, 0, 2);
+    myUi.gridLayout.addWidget(FavorBButton, 0, 3);
+    myUi.gridLayout.addWidget(OvershootButton, 0, 4);
+
 
     // Show the dialog in non-modal fashion.
-    ui.show();
+    myUi.setWindowFlags(Qt.WindowStaysOnTopHint);
+
+    myUi.show();
+    //myUi.isModal = true;
 
     // Connect the buttons
-    ui.FavorAButton.clicked.connect(this, this.tweenPrevious);
-    ui.MidButton.clicked.connect(this, this.tweenMid);
-    ui.FavorBButton.clicked.connect(this, this.tweenNext);
+    AnticButton.clicked.connect(this, this.antic);
+    FavorAButton.clicked.connect(this, this.tweenPrevious);
+    MidButton.clicked.connect(this, this.tweenMid);
+    FavorBButton.clicked.connect(this, this.tweenNext);
+    OvershootButton.clicked.connect(this, this.overshoot);
 
 }
