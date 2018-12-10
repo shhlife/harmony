@@ -2,7 +2,7 @@
  * NC_Tween.js
  *
  * Jason Schleifer / 25 November 2018
- * Latest Revision: 6 December 2018, 1:30 PM
+ * Latest Revision: 7 December 2018, 1:30 PM
  * License: GPL v3
  * 
  * Description:
@@ -12,6 +12,9 @@
  * 
  * Version:
  * --------
+ * 
+ * 0.6 -    If there is an existing key, and we are past the last keyed frame, it'll just
+ *          set a key.
  * 
  * 0.5 -    Updated the window to stay on top when working with it.
  * 
@@ -193,6 +196,7 @@ function NC_Tween() {
             // now we want to find the previous and next frames for each column
             prevFrame = curFrame;
             nextFrame = curFrame;
+            var lastFrame = false; // track and see if this is the last frame.
             prevIndex = 0;
             nextIndex = 0;
             foundNext = 0; // checking to see if we found the next key
@@ -214,6 +218,11 @@ function NC_Tween() {
                 }
             }
 
+            if (foundNext == 0) {
+                // this must be the last frame. 
+                lastFrame = true;
+            }
+
             // get the current, previus and next values
             currentValue = column.getEntry(c, 1, curFrame);
             prevValue = column.getEntry(c, 1, prevFrame);
@@ -232,6 +241,8 @@ function NC_Tween() {
                 col: c,
                 colName: column.getDisplayName(c),
                 val: currentValue,
+                numKeys: numKeys,
+                lastFrame: lastFrame,
                 prevValue: prevValue,
                 prevIndex: prevIndex,
                 nextValue: nextValue,
@@ -257,8 +268,9 @@ function NC_Tween() {
 
             var np = p; // use np so we don't overwrite p
 
+            // set a key if this is the last frame and there are existing keys
             // only continue if the previous value and the next value aren't the same. Otherwise we're wasting time!
-            if (c.prevValue != c.nextValue) {
+            if ((c.prevValue != c.nextValue) || ((c.lastFrame == true) && c.numKeys >= 1)) {
                 // if we're favoring the next key..
                 if (np == 75) {
                     columnInfo[i].prevValue = columnInfo[i].val;
