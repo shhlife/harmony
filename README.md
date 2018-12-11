@@ -42,6 +42,7 @@ https://docs.toonboom.com/help/harmony-16/premium/scripting/import-script.html
 ## Authors
 
 * **Jason Schleifer** - *Initial work* - [Nimble Collective](https://nimblecollective.com)
+* **Chris Carter** - [Blue Zoo](https://www.blue-zoo.co.uk/)
 
 See also the list of [contributors](https://github.com/shhlife/harmony/contributors) who participated in this project.
 

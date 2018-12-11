@@ -12,6 +12,8 @@
  * 
  * Version:
  * --------
+ *  
+ * 0.6 -    enabled NC_tween to select nodes indside of groups ( including deformers ).
  * 
  * 0.5 -    Updated the window to stay on top when working with it.
  * 
@@ -44,8 +46,9 @@
  * 
  * @return {void}
  */
-function NC_Tween() {
+include("NC_Utils.js")
 
+function NC_Tween() {
 
     /**
      * function tween  
@@ -55,6 +58,7 @@ function NC_Tween() {
      * @param  {float} p | Percentage between (in integer - eg: 25, 50, 100)
      * @return  {float} newValue | The resulting value between start and end
      */
+
     this.tween = function(a, b, p) {
 
         var newValue = 0.0;
@@ -74,8 +78,57 @@ function NC_Tween() {
         return newValue;
     }
 
+/**
+     * function getManipulationSelection
+     * 
+     * Returns the relevant nodes in the selection, going inside groups also
+     * 
+     * @return {array} selNodes | Selected Nodes.
+     */
+    
 
-    /**
+	this.getManipulationSelection = function( ){
+
+		//create and empty array to put the nodes we want to manipulate into
+		manipulationSelection = new Array(0)
+
+		var initialSelection = selection.selectedNodes();
+		if( initialSelection.length == 0 ){
+			this.NC_Log("NC_Tween.getManipulationSelection : no nodes selected ")
+			return
+		}
+		else{
+			//the types of nodes that we want to be manipulating
+			nodeTypes_toManipulate = ["PEG", 
+								// all the other tweenable nodes we might want to deal with
+								"CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule"]
+
+			for( i in initialSelection){
+
+				selNode 			= initialSelection[i]
+				selNode_type 		= node.type(selNode)
+
+				// if this node is the type that we want to manipulate then we will add it to our list
+				if(nodeTypes_toManipulate.indexOf(selNode_type) > -1){
+					manipulationSelection.push(selNode)
+				}
+
+				// if this peg is a group then go inside it and return all of the contained nodes of the type we want to collect
+				else{
+					if(selNode_type == "GROUP"){
+						containedElements = this.NC_get_nodesInGroup_ofType( selNode , nodeTypes_toManipulate)
+						Array.prototype.push.apply(manipulationSelection , containedElements)
+					}
+					else{
+						this.NC_Log("selType = " + selNode_type)
+					}
+				}
+			}
+		}
+		return manipulationSelection
+	}
+
+	/**
      * function getLinkedCols
      * 
      * Returns the linked columns from the selected pegs or drawings.
@@ -83,10 +136,8 @@ function NC_Tween() {
      * @return {array} selCols | Selected columns.
      */
 
-    this.getLinkedCols = function() {
 
-        // get selected nodes
-        var sel = selection.selectedNodes();
+    this.getLinkedCols = function(selNodes) {
 
         // get the current frame. This is needed in order to pull the existing columsn
         var curFrame = frame.current();
@@ -95,61 +146,50 @@ function NC_Tween() {
         var selCols = new Array(0);
 
         // for each selected item
-        for (i = 0; i < sel.length; i++) {
+        for (i = 0; i < selNodes.length; i++) {
 
             // get a handy variable for the selected item
-            var n = sel[i];
+            var n = selNodes[i];
 
             // figure out what type it is
             var type = node.type(n);
 
-            // if it's not a peg, then get the parent node
-            if (type != "PEG") {
-                var parent = node.srcNode(n, 0);
-                n = parent;
-            }
+            // get an array for attributes
+            var attrs = new Array(0);
 
-            // add the peg to the selected node
-            if (node.type(n) == "PEG") {
+            // get a list of all attributes on the peg	
+            attrs = node.getAttrList(n, curFrame, "");
 
-                // get an array for attributes
-                var attrs = new Array(0);
+            // for each attribute, let's see if there are any sub attributes.
+            // then for each attr and sub att, we'll check and see if they're linked to a 
+            // column.  If they are, then we'll store those columns.
+            for (z = 0; z < attrs.length; z++) {
 
-                // get a list of all attributes on the peg	
-                attrs = node.getAttrList(n, curFrame, "");
+                // see if there's a linked column
+                var c = node.linkedColumn(n, attrs[z].keyword());
 
-                // for each attribute, let's see if there are any sub attributes.
-                // then for each attr and sub att, we'll check and see if they're linked to a 
-                // column.  If they are, then we'll store those columns.
-                for (z = 0; z < attrs.length; z++) {
+                // if there's no display name, I can assume there's no column
+                if (column.getDisplayName(c) != "") {
+                    selCols.push(c);
+                }
+
+                // now do the same for all subAttrs
+                // get a list of all sub attrs for this attr
+                subAttrs = node.getAttrList(n, curFrame, attrs[z].keyword());
+                for (s = 0; s < subAttrs.length; s++) {
+
+                    sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
 
                     // see if there's a linked column
-                    var c = node.linkedColumn(n, attrs[z].keyword());
+                    var c = node.linkedColumn(n, sa);
 
-                    // if there's no display name, I can assume there's no column
+                    // if there's no display name, I can assume there's no column.
                     if (column.getDisplayName(c) != "") {
-                        selCols.push(c);
-                    }
-
-                    // now do the same for all subAttrs
-                    // get a list of all sub attrs for this attr
-                    subAttrs = node.getAttrList(n, curFrame, attrs[z].keyword());
-                    for (s = 0; s < subAttrs.length; s++) {
-
-                        sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
-
-                        // see if there's a linked column
-                        var c = node.linkedColumn(n, sa);
-
-                        // if there's no display name, I can assume there's no column.
-                        if (column.getDisplayName(c) != "") {
-
-                            selCols.push(c);
-                        }
-                    }
-                }
-            }
-        }
+                         selCols.push(c);
+                     }
+                  }
+              }
+	}
 
         // now we have all the selected columns
         return selCols;
@@ -173,9 +213,11 @@ function NC_Tween() {
          */
     this.NC_SetTween = function(p) {
 
-        // get the selected columns
-        var selCols = new Array(0);
-        selCols = this.getLinkedCols();
+        // get all the tweenable nodes contained in your selection
+        var selCols 	= new Array(0);
+	selNodes 		= this.getManipulationSelection();
+	// get the columns of those nodes
+        selCols 		= this.getLinkedCols(selNodes);
 
         // create an array to store the column info
         var columnInfo = new Array(0);
@@ -307,6 +349,8 @@ function NC_Tween() {
     // =========================================
 
     this.createWidget = function() {
+
+	
         var own = new QDialog();
         var gridLayout = new QGridLayout(own);
         gridLayout.objectName = "gridLayout";

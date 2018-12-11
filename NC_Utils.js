@@ -1,6 +1,10 @@
 /* --------------------------------------------------------------------------------- 
  * NC_Utils.js
  *
+ *
+ * Chris Carter / 11 Dec 2018
+ * Latest Revision: 11 Dec 2018, 12.52 AM - added NC_get_nodesInGroup_ofType to get nodes inside a group
+ * 
  * Jason Schleifer / 25 Nov 2018
  * Latest Revision: 25 Nov 2018, 8:20 AM
  * License: GPL v3
@@ -147,4 +151,22 @@ function NC_get_scriptFile( fileName ){
 	
 	NC_Log("ERROR : no script file named "+ fileName +" could be found in <" + localScriptsFolder +"> or <" +globalScriptsFolder +">")
 	return "ERROR"
+}
+
+// NC_get_nodesInGroup_ofType : will return all nodes of the specified type contained in the selection
+// used to access the content of groups
+
+function NC_get_nodesInGroup_ofType( sel_groupName , nodeTypes_toSelect  ){
+
+	var nodesInGroup_ofType = new Array
+	var allNodes_ofType 	= node.getNodes(nodeTypes_toSelect)
+	for (var i = 0; i < allNodes_ofType.length; ++i)
+	{
+		var selNode 		= allNodes_ofType[i]
+		if (  selNode.indexOf( sel_groupName ) >= 0 )
+		{
+			nodesInGroup_ofType.push(selNode)
+		}
+	}
+	return nodesInGroup_ofType
 }
