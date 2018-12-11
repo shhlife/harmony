@@ -101,3 +101,50 @@ function NC_Log(message) {
 function NC_Error(message) {
     MessageLog.error(message);
 }
+
+
+/*
+NC_get_scriptFile 
+For accessing script resources ( libraries and UI files)
+it will check if the named file exists in the global scripts location and, if not, then the local scripts location.
+This means that these tools can be put in the Harmony Database global scripts location like: < \\*YOUR_SERVER_NAME*\USA_DB\scripts> to be accessed by all members of the same harmony network as well as standalone harmony users where the script location would be like: < C:\Program Files (x86)\Toon Boom Animation\Toon Boom Harmony 16.0 Premium\resources\scripts >
+*/
+function NC_get_scriptFile( fileName ){
+
+	// for Harmony Database 
+	var configFilePath 	= specialFolders.etc + "/shortcuts.conf"
+	var configFile 		= new File (configFilePath)
+	
+	configFile.open( 1 /* FileAccess.ReadOnly */ );
+	var configFileContents = configFile.read( );
+	configFile.close();
+
+	//for line in configfile which  starts with /USA_DB ,  grab the second part of that path and use it as our global path
+	var configFileLines 	= configFileContents.split("\n")
+	for( i  in configFileLines){
+		var selLine 	= configFileLines[i]
+		selLine_clean 	= selLine.substring(0,(selLine.length -1)) // " string.remove()" does not seem to be working so this is to remove the line break from the end of the line
+		if (selLine_clean.indexOf("USA_DB") > -1 ){
+			
+			globalScriptsFolder 		= "/" + selLine_clean.split(" /")[1] + "/scripts" //the server file path will not be split even if the server is named with any ' ' characters
+			var globalScriptsPath 	= globalScriptsFolder + "/" + fileName 
+			var globalFile 			= new File( globalScriptsPath)
+			
+			if ( globalFile.exists ){
+				return globalScriptsPath;
+			}
+		}
+	}
+
+	// for Harmony Standalone
+	var localScriptsFolder 	= specialFolders.userScripts 
+	var localScriptsPath		= localScriptsFolder + "/"  + fileName  
+	var localFile 			= new File( localScriptsPath)
+
+	 if ( localFile.exists ){
+		return localScriptsPath;
+	}
+	
+	NC_Log("ERROR : no script file named "+ fileName +" could be found in <" + localScriptsFolder +"> or <" +globalScriptsFolder +">")
+	return "ERROR"
+}
