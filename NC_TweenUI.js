@@ -150,13 +150,14 @@ function NC_Tween() {
 							// if there are no "READ" or "PEG" nodes in the group then we can add the entire group to the selection as we can assume it will be a deformation goup
 							// so we collect the deformation group and the peg above it
 							readPegNodesInGroup = this.NC_get_nodesInGroup_ofType( selParent , ["READ","PEG"])
-
 							if (readPegNodesInGroup.length <= 0){
 								deformationGroupContents = this.NC_get_nodesInGroup_ofType( selParent, nodeTypes_toManipulate)
 								Array.prototype.push.apply(manipulationSelection , deformationGroupContents)
-								selDeformerParent = node.flatSrcNode(selParent)
-								this.NC_Log(selDeformerParent)
-								manipulationSelection.push(selDeformerParent)
+					
+								selDeformerParent = node.flatSrcNode(selParent, 0)
+								if ( node.type(selDeformerParent) == "PEG"){
+									manipulationSelection.push(selDeformerParent)
+								}
 							}
 							// otherwise, we need to find the speciffic parent peg of this drawing
 							else{
@@ -278,10 +279,11 @@ function NC_Tween() {
         var selCols 	= new Array(0);
 	    selNodes 		= this.getManipulationSelection();
 
+/*
 	    // this is a useful way to debug the returning manipulation selection
 	    this.NC_Log("\tmanipulationSelection = ")
 	    this.NC_numberedList( manipulationSelection)
-	
+	*/
 	    // get the columns of those nodes
         selCols 		= this.getLinkedCols(selNodes);
 
