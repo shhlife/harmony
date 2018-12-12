@@ -4,11 +4,18 @@
  * Jason Schleifer / 25 November 2018
  * Latest Revision: 6 December 2018, 1:30 PM
  * License: GPL v3
- * 
+ *
  * Description:
  * -----------
  * Create a simple UI to make it easy to blend the currently selected peg(s) between the previous and next key frame 
  * 
+ * Chris Carter / 12 December 2018
+ * Latest Revision: 12 December 2018, 15:40 PM
+ * 
+ * Description:
+ * -----------
+ * Enable manipulation of deformation nodes ( and any other non peg nodes inside a group )
+ * Guess if the user is using the camera view to select ( if the initial selection only contains drawings ), if so then select the peg/ deformers applying to its transformation
  * 
  * Version:
  * --------
@@ -141,11 +148,15 @@ function NC_Tween() {
 						
 						else {
 							// if there are no "READ" or "PEG" nodes in the group then we can add the entire group to the selection as we can assume it will be a deformation goup
+							// so we collect the deformation group and the peg above it
 							readPegNodesInGroup = this.NC_get_nodesInGroup_ofType( selParent , ["READ","PEG"])
 
 							if (readPegNodesInGroup.length <= 0){
 								deformationGroupContents = this.NC_get_nodesInGroup_ofType( selParent, nodeTypes_toManipulate)
 								Array.prototype.push.apply(manipulationSelection , deformationGroupContents)
+								selDeformerParent = node.flatSrcNode(selParent)
+								this.NC_Log(selDeformerParent)
+								manipulationSelection.push(selDeformerParent)
 							}
 							// otherwise, we need to find the speciffic parent peg of this drawing
 							else{
@@ -265,15 +276,13 @@ function NC_Tween() {
 
         // get all the tweenable nodes contained in your selection
         var selCols 	= new Array(0);
-	selNodes 		= this.getManipulationSelection();
+	    selNodes 		= this.getManipulationSelection();
 
-	/* 
-	// this is a useful way to debug the returning manipulation selection
-	this.NC_Log("\tmanipulationSelection = ")
-	this.NC_numberedList( manipulationSelection)
-	*/
-
-	// get the columns of those nodes
+	    // this is a useful way to debug the returning manipulation selection
+	    this.NC_Log("\tmanipulationSelection = ")
+	    this.NC_numberedList( manipulationSelection)
+	
+	    // get the columns of those nodes
         selCols 		= this.getLinkedCols(selNodes);
 
         // create an array to store the column info
