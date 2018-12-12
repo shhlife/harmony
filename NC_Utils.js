@@ -3,7 +3,7 @@
  *
  *
  * Chris Carter / 11 Dec 2018
- * Latest Revision: 11 Dec 2018, 12.52 AM - added NC_get_nodesInGroup_ofType to get nodes inside a group
+ * Latest Revision: 11 Dec 2018, 8:20 AM
  * 
  * Jason Schleifer / 25 Nov 2018
  * Latest Revision: 25 Nov 2018, 8:20 AM
@@ -93,6 +93,23 @@ function NC_Log(message) {
     MessageLog.trace(message);
 }
 
+
+/**
+ * NC_numberedList
+ * 
+ * Similar to NC_Log. useful for debugging and clarifying what is contained in a speciffic array
+ * 
+ * @param  {array} arrayOfItems 
+ * @return {void}
+ */
+function NC_numberedList( arrayOfItems ){
+	for( i in arrayOfItems )
+	{
+		selItem = arrayOfItems[i]
+		MessageLog.trace( "\t" + i + " \t" + selItem)
+	}
+}
+
 /**
  * NC_Error
  * 
@@ -155,7 +172,6 @@ function NC_get_scriptFile( fileName ){
 
 // NC_get_nodesInGroup_ofType : will return all nodes of the specified type contained in the selection
 // used to access the content of groups
-
 function NC_get_nodesInGroup_ofType( sel_groupName , nodeTypes_toSelect  ){
 
 	var nodesInGroup_ofType = new Array

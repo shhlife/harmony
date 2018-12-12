@@ -12,8 +12,8 @@
  * 
  * Version:
  * --------
- *  
- * 0.6 -    enabled NC_tween to select nodes indside of groups ( including deformers ).
+ * 
+ * 0.6 -    Will work on deformers ( and any peg / deformer inside a contained group).
  * 
  * 0.5 -    Updated the window to stay on top when working with it.
  * 
@@ -46,6 +46,10 @@
  * 
  * @return {void}
  */
+
+//keep the deformation types as a variable so that they dont need to be written out multiple times
+var deformationTypes = ["CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule"]
+
 include("NC_Utils.js")
 
 function NC_Tween() {
@@ -78,7 +82,7 @@ function NC_Tween() {
         return newValue;
     }
 
-/**
+    /**
      * function getManipulationSelection
      * 
      * Returns the relevant nodes in the selection, going inside groups also
@@ -89,38 +93,84 @@ function NC_Tween() {
 
 	this.getManipulationSelection = function( ){
 
+		//the types of nodes that we want to be manipulating ( all deformers + pegs )
+		nodeTypes_toManipulate = this.deformationTypes
+		Array.prototype.push.apply(nodeTypes_toManipulate, ["PEG"] )
+
 		//create and empty array to put the nodes we want to manipulate into
 		manipulationSelection = new Array(0)
 
 		var initialSelection = selection.selectedNodes();
+
 		if( initialSelection.length == 0 ){
 			this.NC_Log("NC_Tween.getManipulationSelection : no nodes selected ")
 			return
 		}
 		else{
-			//the types of nodes that we want to be manipulating
-			nodeTypes_toManipulate = ["PEG", 
-								// all the other tweenable nodes we might want to deal with
-								"CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule"]
-
+			
+			// check if the selection is all drawings, if so then they user (probably) selected in the camera view so we should make sure the deformer/peg imediately above the drawing are being manipulated
+			var selectionIsAllDrawings = true
 			for( i in initialSelection){
-
-				selNode 			= initialSelection[i]
-				selNode_type 		= node.type(selNode)
-
-				// if this node is the type that we want to manipulate then we will add it to our list
-				if(nodeTypes_toManipulate.indexOf(selNode_type) > -1){
-					manipulationSelection.push(selNode)
+				selNode = initialSelection[i]
+				if(node.type(selNode) != "READ"){
+					selectionIsAllDrawings = false
 				}
+			}
 
-				// if this peg is a group then go inside it and return all of the contained nodes of the type we want to collect
-				else{
-					if(selNode_type == "GROUP"){
+			if ( selectionIsAllDrawings ){
+				
+				for(d in initialSelection){
+					selDrawing 	= initialSelection[d]
+					//get the drawings parent
+					selParent 		= node.srcNode(selDrawing,0)
+					selParent_type = node.type(selParent)
+
+					// if the parent is a peg then add it to the selection
+					if ( selParent_type == "PEG"){
+						manipulationSelection.push(selParent)
+					}
+
+					// if the parent is a group check if the node immediately connected to it is a peg, if not then check if it is a deformation group, if not then ignore it as that is a rigging style that will take too much time to accomidate at the moment.
+					else if ( selParent_type == "GROUP"){ 
+
+						selParent_inGroup = node.flatSrcNode(selDrawing, 0);
+						if( node.type(selParent_inGroup) == "PEG"){
+							manipulationSelection.push(selParent_inGroup)
+						}
+						
+						
+						else {
+							// if there are no "READ" or "PEG" nodes in the group then we can add the entire group to the selection as we can assume it will be a deformation goup
+							readPegNodesInGroup = this.NC_get_nodesInGroup_ofType( selParent , ["READ","PEG"])
+
+							if (readPegNodesInGroup.length <= 0){
+								deformationGroupContents = this.NC_get_nodesInGroup_ofType( selParent, nodeTypes_toManipulate)
+								Array.prototype.push.apply(manipulationSelection , deformationGroupContents)
+							}
+							// otherwise, we need to find the speciffic parent peg of this drawing
+							else{
+								this.NC_Log("NC_Tween.getManipulationSelection : unable to validate hierarchy imediately above node :  < " +  selDrawing + " > /n Try selecting the nodes you want to manipulate in the 'Node View' window  ")
+							}	
+						}				
+					}
+				}
+			}
+			else{
+
+				for( i in initialSelection){
+
+					selNode 			= initialSelection[i]
+					selNode_type 		= node.type(selNode)
+
+					// if this node is the type that we want to manipulate then we will add it to our list
+					if(nodeTypes_toManipulate.indexOf(selNode_type) > -1){
+						manipulationSelection.push(selNode)
+					}
+
+					// if this peg is a group then go inside it and return all of the contained nodes of the type we want to collect
+					else if(selNode_type == "GROUP"){
 						containedElements = this.NC_get_nodesInGroup_ofType( selNode , nodeTypes_toManipulate)
 						Array.prototype.push.apply(manipulationSelection , containedElements)
-					}
-					else{
-						this.NC_Log("selType = " + selNode_type)
 					}
 				}
 			}
@@ -216,6 +266,13 @@ function NC_Tween() {
         // get all the tweenable nodes contained in your selection
         var selCols 	= new Array(0);
 	selNodes 		= this.getManipulationSelection();
+
+	/* 
+	// this is a useful way to debug the returning manipulation selection
+	this.NC_Log("\tmanipulationSelection = ")
+	this.NC_numberedList( manipulationSelection)
+	*/
+
 	// get the columns of those nodes
         selCols 		= this.getLinkedCols(selNodes);
 
@@ -327,7 +384,8 @@ function NC_Tween() {
                 // skipping
             }
         }
-        scene.endUndoRedoAccum();
+	this.NC_Log("NC_Tween : keyframe on frame: " + curFrame)
+    scene.endUndoRedoAccum();
     }
     this.antic = function() {
         this.NC_SetTween(-15);
