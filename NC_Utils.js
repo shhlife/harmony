@@ -3,7 +3,11 @@
  *
  *
  * Chris Carter / 11 Dec 2018
- * Latest Revision: 11 Dec 2018, 8:20 AM
+ * Latest Revision: 13 Dec 2018, 12:20 PM
+ * 
+ * Description:
+ * -----------
+ * Added: NC_numberedList, NC_get_scriptFile, NC_get_nodesInGroup_ofType, NC_get_allDstNodes
  * 
  * Jason Schleifer / 25 Nov 2018
  * Latest Revision: 25 Nov 2018, 8:20 AM
@@ -102,7 +106,7 @@ function NC_Log(message) {
  * @param  {array} arrayOfItems 
  * @return {void}
  */
-function NC_numberedList( arrayOfItems ){
+function NC_NumberedList( arrayOfItems ){
 	for( i in arrayOfItems )
 	{
 		selItem = arrayOfItems[i]
@@ -130,7 +134,7 @@ For accessing script resources ( libraries and UI files)
 it will check if the named file exists in the global scripts location and, if not, then the local scripts location.
 This means that these tools can be put in the Harmony Database global scripts location like: < \\*YOUR_SERVER_NAME*\USA_DB\scripts> to be accessed by all members of the same harmony network as well as standalone harmony users where the script location would be like: < C:\Program Files (x86)\Toon Boom Animation\Toon Boom Harmony 16.0 Premium\resources\scripts >
 */
-function NC_get_scriptFile( fileName ){
+function NC_GetScriptFile( fileName ){
 
 	// for Harmony Database 
 	var configFilePath 	= specialFolders.etc + "/shortcuts.conf"
@@ -172,7 +176,7 @@ function NC_get_scriptFile( fileName ){
 
 // NC_get_nodesInGroup_ofType : will return all nodes of the specified type contained in the selection
 // used to access the content of groups
-function NC_get_nodesInGroup_ofType( sel_groupName , nodeTypes_toSelect  ){
+function NC_GetNodesInGroup_ofType( sel_groupName , nodeTypes_toSelect  ){
 
 	var nodesInGroup_ofType = new Array
 	var allNodes_ofType 	= node.getNodes(nodeTypes_toSelect)
@@ -185,4 +189,49 @@ function NC_get_nodesInGroup_ofType( sel_groupName , nodeTypes_toSelect  ){
 		}
 	}
 	return nodesInGroup_ofType
+}
+
+// NC_get_allDstNodes : will return all nodes below this node in the network hierarchy
+// this will not go inside groups, you need to use this inconjunction with NC_get_nodesInGroup_ofType to do that
+function NC_GetAllDstNodes(nodeTypes_toManipulate, dstNodeCollection, selNode ){
+	
+	//this.NC_Log("NC_GetAllDstNodes called")
+	//this.NC_Log("nodeTypes_toManipulate : " + nodeTypes_toManipulate )
+	//this.NC_Log("dstNodeCollection : " + dstNodeCollection )
+	//this.NC_Log("selNode : " + selNode )
+	// get all output ports
+	for( var i_port = 0 ; i_port < node.numberOfOutputPorts ( selNode ) ; i_port++){
+
+		// for each output port get all of the output links
+		for( var i_link = 0; i_link < node.numberOfOutputLinks (selNode, i_port) ; i_link++){
+
+			var selDstNode 		= node.dstNode(selNode, i_port, i_link)
+			var selDstNode_type 	= node.type(selDstNode)
+
+			//this.NC_Log("this dst node = " + selDstNode + "\t type = " + selDstNode_type)
+			
+			var nodeIsNotListed = ( dstNodeCollection.indexOf(selDstNode) == -1)
+			var nodeTypeWeWant = ( nodeTypes_toManipulate.indexOf(selDstNode_type) > -1)
+			
+			if( nodeIsNotListed && nodeTypeWeWant){
+
+				// add each of these destination nodes to the collection
+				dstNodeCollection.push(selDstNode)
+				//run this function recursively
+				var nodesBelowSelDstNode = NC_GetAllDstNodes(nodeTypes_toManipulate , dstNodeCollection, selDstNode)
+				
+				for( i in nodesBelowSelDstNode ){
+					selBelowNode = nodesBelowSelDstNode[i]
+
+					// make sure there are no duplicate nodes in the collection
+					var nodeBelowIsNotListed = ( dstNodeCollection.indexOf(selBelowNode) == -1)
+					if ( nodeBelowIsNotListed)
+					{
+						dstNodeCollection.push(nodesBelowSelDstNode)
+					} 
+				}
+			}
+		}
+	}
+	return dstNodeCollection
 }
