@@ -4,14 +4,26 @@
  * Jason Schleifer / 25 November 2018
  * Latest Revision: 6 December 2018, 1:30 PM
  * License: GPL v3
- * 
+ *
  * Description:
  * -----------
  * Create a simple UI to make it easy to blend the currently selected peg(s) between the previous and next key frame 
  * 
+ * Chris Carter / 12 December 2018
+ * Latest Revision: 13 December 2018, 15:40 PM
+ * 
+ * Description:
+ * -----------
+ * Enable manipulation of deformation nodes ( and any other non peg nodes inside a group )
+ * Guess if the user is using the camera view to select ( if the initial selection only contains drawings ), if so then select the peg/ deformers applying to its transformation
+ * Include checkbox option to collect all nodes beneath the selected node.
  * 
  * Version:
  * --------
+ * 
+ * 0.7 -    Include option to collect all nodes beneath the selected node in the hierarchy
+ * 
+ * 0.6 -    Will work on deformers ( and any peg / deformer inside a contained group).
  * 
  * 0.5 -    Updated the window to stay on top when working with it.
  * 
@@ -44,8 +56,19 @@
  * 
  * @return {void}
  */
-function NC_Tween() {
 
+//keep the deformation types as a variable so that they dont need to be written out multiple times
+var deformationTypes = ["CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule"]
+// manipulateTypes are same as deformation types but also includes PEG type
+var manipulateTypes = ["CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule", "PEG" ]
+// selectionTypes are same as deformation types but also includes PEG type and GROUP type
+var selectionTypes = ["CurveModule", "OffsetModule", "DeformationCompositeModule", "KinematicOutputModule", "TransformationSwitch", "PointConstraint2","REMOVE_TRANSPARENCY","BendyBoneModule","ArticulationModule","BezierMesh","GameBoneModule","GLUE","REFRACT","BoneModule","Turbulence","DeformationRootModule","DeformationScaleModule","DeformationSwitchModule","DeformationUniformScaleModule","DeformationWaveModule","FoldModule","AutoFoldModule","AutoMuscleModule", "PEG" , "GROUP"]
+
+var debug = false
+
+include("NC_Utils.js")
+
+function NC_Tween() {
 
     /**
      * function tween  
@@ -55,6 +78,7 @@ function NC_Tween() {
      * @param  {float} p | Percentage between (in integer - eg: 25, 50, 100)
      * @return  {float} newValue | The resulting value between start and end
      */
+
     this.tween = function(a, b, p) {
 
         var newValue = 0.0;
@@ -74,8 +98,113 @@ function NC_Tween() {
         return newValue;
     }
 
-
     /**
+     * function getManipulationSelection
+     * 
+     * Returns the relevant nodes in the selection, going inside groups also
+     * 
+     * @return {array} selNodes | Selected Nodes.
+     */
+    
+
+	this.getManipulationSelection = function( nodeTypes_toManipulate , nodeSelection ){
+
+        if( this.debug ){  
+            this.NC_Log("getManipulationSelection called") 
+        }
+
+		//create and empty array to put the nodes we want to manipulate into
+		manipulationSelection = new Array(0)
+
+		if( nodeSelection.length == 0 ){
+			this.NC_Log("NC_Tween.getManipulationSelection : no nodes selected ")
+			return
+		}
+		else{
+			
+			// check if the selection is all drawings, if so then they user (probably) selected in the camera view so we should make sure the deformer/peg imediately above the drawing are being manipulated
+			var selectionIsAllDrawings = true
+			for( i in nodeSelection){
+				selNode = nodeSelection[i]
+				if(node.type(selNode) != "READ"){
+					selectionIsAllDrawings = false
+				}
+			}
+
+			if ( selectionIsAllDrawings ){
+                
+                if( this.debug ){  
+                    this.NC_Log("selectionIsAllDrawings") 
+                }
+                
+				for(d in nodeSelection){
+					selDrawing 	= nodeSelection[d]
+					//get the drawings parent
+					selParent 		= node.srcNode(selDrawing,0)
+					selParent_type = node.type(selParent)
+
+					// if the parent is a peg then add it to the selection
+					if ( selParent_type == "PEG"){
+						manipulationSelection.push(selParent)
+					}
+
+					// if the parent is a group check if the node immediately connected to it is a peg, if not then check if it is a deformation group, if not then ignore it as that is a rigging style that will take too much time to accomidate at the moment.
+					else if ( selParent_type == "GROUP"){ 
+
+						selParent_inGroup = node.flatSrcNode(selDrawing, 0);
+						if( node.type(selParent_inGroup) == "PEG"){
+							manipulationSelection.push(selParent_inGroup)
+						}
+						
+						
+						else {
+							// if there are no "READ" or "PEG" nodes in the group then we can add the entire group to the selection as we can assume it will be a deformation goup
+							// so we collect the deformation group and the peg above it
+							readPegNodesInGroup = this.NC_GetNodesInGroup_ofType( selParent , ["READ","PEG"])
+
+							if (readPegNodesInGroup.length <= 0){
+								deformationGroupContents = this.NC_GetNodesInGroup_ofType( selParent, nodeTypes_toManipulate)
+								Array.prototype.push.apply(manipulationSelection , deformationGroupContents)
+								selDeformerParent = node.flatSrcNode(selParent)
+								this.NC_Log(selDeformerParent)
+								manipulationSelection.push(selDeformerParent)
+							}
+							// otherwise, we need to find the speciffic parent peg of this drawing
+							else{
+								this.NC_Log("NC_Tween.getManipulationSelection : unable to validate hierarchy imediately above node :  < " +  selDrawing + " > /n Try selecting the nodes you want to manipulate in the 'Node View' window  ")
+							}	
+						}				
+					}
+				}
+			}
+			else{
+
+				for( i in nodeSelection){
+
+                    if( this.debug ){  
+                        this.NC_Log("selNode = " + nodeSelection[i]) 
+                    }
+
+					selNode 			= nodeSelection[i]
+					selNode_type 		= node.type(selNode)
+
+					// if this node is the type that we want to manipulate then we will add it to our list
+					if(nodeTypes_toManipulate.indexOf(selNode_type) > -1){
+						manipulationSelection.push(selNode)
+					}
+
+					// if this peg is a group then go inside it and return all of the contained nodes of the type we want to collect
+					else if(selNode_type == "GROUP"){
+						containedElements = this.NC_GetNodesInGroup_ofType( selNode , nodeTypes_toManipulate)
+						Array.prototype.push.apply(manipulationSelection , containedElements)
+					}
+				}
+			}
+		}
+		return manipulationSelection
+	}
+
+	/**
      * function getLinkedCols
      * 
      * Returns the linked columns from the selected pegs or drawings.
@@ -83,10 +212,8 @@ function NC_Tween() {
      * @return {array} selCols | Selected columns.
      */
 
-    this.getLinkedCols = function() {
 
-        // get selected nodes
-        var sel = selection.selectedNodes();
+    this.getLinkedCols = function(selNodes) {
 
         // get the current frame. This is needed in order to pull the existing columsn
         var curFrame = frame.current();
@@ -95,61 +222,50 @@ function NC_Tween() {
         var selCols = new Array(0);
 
         // for each selected item
-        for (i = 0; i < sel.length; i++) {
+        for (i = 0; i < selNodes.length; i++) {
 
             // get a handy variable for the selected item
-            var n = sel[i];
+            var n = selNodes[i];
 
             // figure out what type it is
             var type = node.type(n);
 
-            // if it's not a peg, then get the parent node
-            if (type != "PEG") {
-                var parent = node.srcNode(n, 0);
-                n = parent;
-            }
+            // get an array for attributes
+            var attrs = new Array(0);
 
-            // add the peg to the selected node
-            if (node.type(n) == "PEG") {
+            // get a list of all attributes on the peg	
+            attrs = node.getAttrList(n, curFrame, "");
 
-                // get an array for attributes
-                var attrs = new Array(0);
+            // for each attribute, let's see if there are any sub attributes.
+            // then for each attr and sub att, we'll check and see if they're linked to a 
+            // column.  If they are, then we'll store those columns.
+            for (z = 0; z < attrs.length; z++) {
 
-                // get a list of all attributes on the peg	
-                attrs = node.getAttrList(n, curFrame, "");
+                // see if there's a linked column
+                var c = node.linkedColumn(n, attrs[z].keyword());
 
-                // for each attribute, let's see if there are any sub attributes.
-                // then for each attr and sub att, we'll check and see if they're linked to a 
-                // column.  If they are, then we'll store those columns.
-                for (z = 0; z < attrs.length; z++) {
+                // if there's no display name, I can assume there's no column
+                if (column.getDisplayName(c) != "") {
+                    selCols.push(c);
+                }
+
+                // now do the same for all subAttrs
+                // get a list of all sub attrs for this attr
+                subAttrs = node.getAttrList(n, curFrame, attrs[z].keyword());
+                for (s = 0; s < subAttrs.length; s++) {
+
+                    sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
 
                     // see if there's a linked column
-                    var c = node.linkedColumn(n, attrs[z].keyword());
+                    var c = node.linkedColumn(n, sa);
 
-                    // if there's no display name, I can assume there's no column
+                    // if there's no display name, I can assume there's no column.
                     if (column.getDisplayName(c) != "") {
-                        selCols.push(c);
-                    }
-
-                    // now do the same for all subAttrs
-                    // get a list of all sub attrs for this attr
-                    subAttrs = node.getAttrList(n, curFrame, attrs[z].keyword());
-                    for (s = 0; s < subAttrs.length; s++) {
-
-                        sa = (attrs[z].keyword() + "." + subAttrs[s].keyword());
-
-                        // see if there's a linked column
-                        var c = node.linkedColumn(n, sa);
-
-                        // if there's no display name, I can assume there's no column.
-                        if (column.getDisplayName(c) != "") {
-
-                            selCols.push(c);
-                        }
-                    }
-                }
-            }
-        }
+                         selCols.push(c);
+                     }
+                  }
+              }
+	}
 
         // now we have all the selected columns
         return selCols;
@@ -171,11 +287,44 @@ function NC_Tween() {
          * @param  {any} p | percentage to tween
          * @return {void}
          */
-    this.NC_SetTween = function(p) {
+    this.NC_SetTween = function(p , kc) {
 
-        // get the selected columns
-        var selCols = new Array(0);
-        selCols = this.getLinkedCols();
+        if( this.debug ){  
+            this.NC_Log("NC_SetTween called") 
+        }
+
+        var initialSelection = selection.selectedNodes()
+
+        //collect all nodes that are below the selected nodes in the node hierarchy
+        if ( kc){
+            for( i in initialSelection ){
+                selNode = initialSelection[i]
+
+                // get all of the nodes below this node in the hierarchy
+                
+                var initialSelection = this.NC_GetAllDstNodes( this.selectionTypes,  initialSelection, selNode )
+            }
+        }
+
+        // this is a useful way to debug the initial selection
+        if( this.debug ){    
+            this.NC_Log("\tinitialSelection = ")
+            this.NC_NumberedList( initialSelection)
+        }
+
+        // get all the tweenable nodes contained in your selection
+        var selCols 	= new Array(0);
+
+	    selNodes 		= this.getManipulationSelection( this.manipulateTypes,  initialSelection );
+
+	    // this is a useful way to debug the returning manipulation selection
+	    if( this.debug ){    
+            this.NC_Log("\tmanipulationSelection = ")
+            this.NC_NumberedList( manipulationSelection)
+        }
+	
+	    // get the columns of those nodes
+        selCols 		= this.getLinkedCols(selNodes);
 
         // create an array to store the column info
         var columnInfo = new Array(0);
@@ -285,28 +434,31 @@ function NC_Tween() {
                 // skipping
             }
         }
-        scene.endUndoRedoAccum();
+	this.NC_Log("NC_Tween : keyframe on frame: " + curFrame)
+    scene.endUndoRedoAccum();
     }
     this.antic = function() {
-        this.NC_SetTween(-15);
+        this.NC_SetTween(-15 , keyChildNodes.checked);
     }
     this.tweenPrevious = function() {
-        this.NC_SetTween(25);
+        this.NC_SetTween(25 , keyChildNodes.checked);
     }
     this.tweenMid = function() {
-        this.NC_SetTween(50);
+        this.NC_SetTween(50 , keyChildNodes.checked);
     }
     this.tweenNext = function() {
-        this.NC_SetTween(75);
+        this.NC_SetTween(75 , keyChildNodes.checked);
     }
     this.overshoot = function() {
-        this.NC_SetTween(115);
+        this.NC_SetTween(115 , keyChildNodes.checked);
     }
 
     // UI
     // =========================================
 
     this.createWidget = function() {
+
+	
         var own = new QDialog();
         var gridLayout = new QGridLayout(own);
         gridLayout.objectName = "gridLayout";
@@ -332,6 +484,10 @@ function NC_Tween() {
     var OvershootButton = new QPushButton();
     OvershootButton.text = "Overshoot";
 
+    var keyChildNodes = new QCheckBox();
+    keyChildNodes.text = "keframe child nodes"
+    keyChildNodes.checked = true;
+
     // Layout
     myUi.gridLayout.addWidget(AnticButton, 0, 0);
     myUi.gridLayout.addWidget(FavorAButton, 0, 1);
@@ -339,6 +495,7 @@ function NC_Tween() {
     myUi.gridLayout.addWidget(FavorBButton, 0, 3);
     myUi.gridLayout.addWidget(OvershootButton, 0, 4);
 
+    myUi.gridLayout.addWidget(keyChildNodes, 1, 0);
 
     // Show the dialog in non-modal fashion.
     myUi.setWindowFlags(Qt.WindowStaysOnTopHint);
